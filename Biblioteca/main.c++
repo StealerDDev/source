@@ -22,6 +22,7 @@ void registerStudent(string name, string id) {
 void editStudent(string newName, string id) {
 
     if (!students.count(id)) {
+        cout << "Não foi possível achar o estudante!\n";
         return;
     }
 
@@ -31,6 +32,7 @@ void editStudent(string newName, string id) {
 void removeStudent(string id) {
 
     if (!students.count(id)) {
+        cout << "Não foi possível achar o estudante!\n";
         return;
     }
     students.erase(id);
@@ -40,7 +42,7 @@ void removeStudent(string id) {
 void visualizeStudents() {
     for (const auto &entry:students) {
         printf(
-            "\n[%s]. %s",
+            "1[%s]. %s\n",
             entry.first.c_str(),
             entry.second.c_str()
         );
@@ -54,6 +56,7 @@ void registerBook(string title, string id) {
 void removeBook(string id) {
 
     if (!books.count(id)) {
+        cout << "Não foi possível achar o livro!\n";
         return;
     }
     books.erase(id);
@@ -63,6 +66,7 @@ void removeBook(string id) {
 void editBook(string newTitle, string id) {
 
     if (!books.count(id)) {
+        cout << "Não foi possível achar o livro!\n";
         return;
     }
     books[id] = {newTitle};
@@ -72,7 +76,7 @@ void editBook(string newTitle, string id) {
 void visualizeBooks() {
     for (const auto &entry:books) {
         printf(
-            "\nID de serie: %s\nTitulo: %s\nDisponivel: %s",
+            "\nID de serie: %s\nTitulo: %s\nDisponivel: %s\n",
             entry.first.c_str(),
             entry.second.title.c_str(),
             entry.second.available ? "Sim" : "Não"
@@ -83,12 +87,19 @@ void visualizeBooks() {
 void borrowBook(string bookID, string studentID) {
 
     if (!books.count(bookID)) {
+        cout << "Não foi possível achar o livro!\n";
         return;
     }
     if (!students.count(studentID)) {
+        cout << "Não foi possível achar o estudante!\n";
+        return;
+    }
+        if (borrowings.count(studentID) && borrowings[studentID].count(bookID)) {
+        cout << "O estudante ja está com esse livro!";
         return;
     }
     if (!books[bookID].available) {
+        cout << "O livro não está disponível!\n";
         return;
     }
 
@@ -100,14 +111,19 @@ void borrowBook(string bookID, string studentID) {
 void returnBook(string bookID, string studentID) {
 
     if (!books.count(bookID)) {
+        cout << "Não foi possível achar o livro!\n";
         return;
     }
     if (!students.count(studentID)) {
+        cout << "Não foi possível achar o estudante!\n";
         return;
     }
 
     borrowings[studentID].erase(bookID);
     books[bookID].available = true;
+    if (borrowings[studentID].size() <= 0) {
+        borrowings.erase(studentID);
+    }
 }
 
 void visualizeBorrowings() {
@@ -212,7 +228,6 @@ int main() {
             default:
                 cout << "Opcao invalida!\n";
         }
-        cout << "\n";
     } while (option != 0);
 
     return 0;
