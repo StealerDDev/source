@@ -105,9 +105,6 @@ void returnBook(string bookID, string studentID) {
     if (!students.count(studentID)) {
         return;
     }
-    if (!books[bookID].available) {
-        return;
-    }
 
     borrowings[studentID].erase(bookID);
     books[bookID].available = true;
@@ -215,6 +212,7 @@ int main() {
             default:
                 cout << "Opcao invalida!\n";
         }
+        cout << "\n";
     } while (option != 0);
 
     return 0;
