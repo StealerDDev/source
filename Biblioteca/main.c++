@@ -10,13 +10,17 @@ struct Book {
     string title = "";
     bool available = true;
 };
+struct Students {
+    string name = "";
+};
+
 
 unordered_map<string, Book> books = {};
-unordered_map<string, string> students = {};
+unordered_map<string, Students> students = {};
 unordered_map<string, unordered_set<string>> borrowings = {};
 
 void registerStudent(string name, string id) {
-    students[id] = name;
+    students[id].name = name;
 }
 
 void editStudent(string newName, string id) {
@@ -26,26 +30,36 @@ void editStudent(string newName, string id) {
         return;
     }
 
-    students[id] = newName;
+    students[id].name = newName;
 }
 
 void removeStudent(string id) {
 
-    if (!students.count(id)) {
-        cout << "Não foi possível achar o estudante!\n";
+    auto student = students.find(id);
+
+    if (student == students.end()) {
+        cout << "Este aluno não existe!";
         return;
     }
-    students.erase(id);
+
+    auto borrowIt = borrowings.find(id);
+    if (borrowIt != borrowings.end()) {
+        for (const auto& bookID : borrowIt->second) {
+            auto book = books.find(bookID);
+            if (book != books.end()) {
+                book->second.available = true;
+            }
+        }
+        borrowings.erase(borrowIt);
+    }
+
+    students.erase(student);
 
 }
 
 void visualizeStudents() {
     for (const auto &entry:students) {
-        printf(
-            "1[%s]. %s\n",
-            entry.first.c_str(),
-            entry.second.c_str()
-        );
+        cout << "[" << entry.first << "]." << entry.second.name << "\n";
     };
 }
 
@@ -55,11 +69,20 @@ void registerBook(string title, string id) {
 
 void removeBook(string id) {
 
-    if (!books.count(id)) {
-        cout << "Não foi possível achar o livro!\n";
+    auto book = books.find(id);
+    if (book == books.end()) {
+        cout << "O livro não exite!\n";
         return;
     }
-    books.erase(id);
+
+    for (auto& [studentID, borrowed] : borrowings) {
+        borrowed.erase(id);
+        if (borrowed.empty()) {
+            borrowings.erase(studentID);
+        }
+    }
+
+    books.erase(book);
 
 }
 
@@ -69,58 +92,81 @@ void editBook(string newTitle, string id) {
         cout << "Não foi possível achar o livro!\n";
         return;
     }
-    books[id] = {newTitle};
+    books[id].title = newTitle;
 
 }
 
 void visualizeBooks() {
     for (const auto &entry:books) {
-        printf(
-            "\nID de serie: %s\nTitulo: %s\nDisponivel: %s\n",
-            entry.first.c_str(),
-            entry.second.title.c_str(),
-            entry.second.available ? "Sim" : "Não"
-        );
+        cout <<"\nID de Serie: " << entry.first 
+            << "\nTitulo: " << entry.second.title
+            << "\nDisponivel: " << (entry.second.available ? "Sim" : "Não")
+            << "\n";
+        
     };
 }
 
 void borrowBook(string bookID, string studentID) {
 
-    if (!books.count(bookID)) {
+    auto book = books.find(bookID);
+    if (book == books.end()) {
         cout << "Não foi possível achar o livro!\n";
         return;
     }
-    if (!students.count(studentID)) {
+
+    auto student = students.find(studentID);
+    if (student == students.end()) {
         cout << "Não foi possível achar o estudante!\n";
         return;
     }
-        if (borrowings.count(studentID) && borrowings[studentID].count(bookID)) {
-        cout << "O estudante ja está com esse livro!";
+
+    auto borrowIt = borrowings.find(studentID);
+
+    if (borrowings[studentID].count(bookID)) {
+        cout << "O estudante ja está com esse livro!\n";
         return;
     }
-    if (!books[bookID].available) {
+
+    if (!book->second.available) {
         cout << "O livro não está disponível!\n";
         return;
     }
 
     borrowings[studentID].insert(bookID);
-    books[bookID].available = false;
+    book->second.available = false;
 
 }
 
 void returnBook(string bookID, string studentID) {
 
-    if (!books.count(bookID)) {
+    auto book = books.find(bookID);
+    if (book == books.end()) {
         cout << "Não foi possível achar o livro!\n";
         return;
     }
-    if (!students.count(studentID)) {
+
+    auto student = students.find(studentID);
+    if (student == students.end()) {
         cout << "Não foi possível achar o estudante!\n";
         return;
     }
 
+    auto borrowIt = borrowings.find(studentID);
+
+    if (borrowIt == borrowings.end()) {
+        cout << "O estudante nunca pegou livros!\n";
+        return;
+    };
+
+    auto borrowedBook = borrowIt->second.find(bookID);
+    
+    if (borrowedBook == borrowIt->second.end()) {
+        cout << "Este aluno não tem este livro!\n";
+        return;
+    }
+
     borrowings[studentID].erase(bookID);
-    books[bookID].available = true;
+    book->second.available = true;
     if (borrowings[studentID].size() <= 0) {
         borrowings.erase(studentID);
     }
@@ -128,11 +174,22 @@ void returnBook(string bookID, string studentID) {
 
 void visualizeBorrowings() {
     for (const auto& entry : borrowings) {
-        string studentID = entry.first;
-        cout << "Aluno [" << studentID << "] " << students[studentID] << ":\n";
+        const auto& studentID = entry.first;
+        
+        const auto& student = students.find(studentID);
+        if (student == students.end()) {
+            continue;
+        }
+        cout << "Aluno [" << studentID << "] " << student->second.name << ":\n";
 
         for (const string& bookID : entry.second) {
-            cout << "   - Livro [" << bookID << "] " << books[bookID].title << "\n";
+            const auto& book = books.find(bookID);
+
+            if (book == books.end()) {
+                continue;
+            }
+
+            cout << "   - Livro [" << bookID << "] " << book->second.title << "\n";
         }
     }
 }
@@ -155,7 +212,7 @@ int main() {
         cout << "Escolha uma opcao: ";
         cin >> option;
 
-        string id, name, title;
+        string id, name, title, studentID;
         switch (option) {
             case 1:
                 cout << "ID do aluno: ";
@@ -209,15 +266,15 @@ int main() {
                 cout << "ID do livro: ";
                 cin >> id;
                 cout << "ID do aluno: ";
-                cin >> name;
-                borrowBook(id, name);
+                cin >> studentID;
+                borrowBook(id, studentID);
                 break;
             case 10:
                 cout << "ID do livro: ";
                 cin >> id;
                 cout << "ID do aluno: ";
-                cin >> name;
-                returnBook(id, name);
+                cin >> studentID;
+                returnBook(id, studentID);
                 break;
             case 11:
                 visualizeBorrowings();
